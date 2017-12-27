@@ -15,6 +15,8 @@ using namespace std;
 
 enum { MAKE = 1, DEPOSIT, WITHDRAW, SHOWINFO, EXIT };
 
+enum { GRADE_A = 7, GRADE_B = 4, GRADE_C = 2 };
+
 class Account {
 private:
 	int accID;		// 계좌번호
@@ -24,10 +26,10 @@ public:
 	Account(int accID, int money, char* Name);
 	Account(const Account& copy);
 	int getID(void) const;
-	void Deposit(int money);
+	virtual void Deposit(int money) = 0;
 	int WithDraw(int money);
 	void showAccInfo(void) const;
-	virtual ~Account();
+	~Account();
 };
 
 Account::Account(int accID, int money, char* Name) : accID(accID), balance(money) {
@@ -61,24 +63,72 @@ void Account::showAccInfo(void) const
 {
 	cout << "=====================" << endl;
 	cout << "계좌ID: " << accID << endl;
-	cout << "잔액: " << balance << endl;
 	cout << "고객이름: " << cusName << endl;
+	cout << "잔액: " << balance << endl;
+	cout << "=====================" << endl;
 }
 
 Account::~Account() {
 	delete[] cusName;
 }
 
+
 /*
- * 클래스 이름 : NormalAccount
- * 클래스 설명 : 보통예금계좌(Account 상속)
+* 클래스 이름 : NormalAccount
+* 클래스 설명 : 보통예금계좌(Account 상속)
 */
 class NormalAccount : public Account {
 private:
+	int NAratio;
 public:
-	NormalAccount(int ID, int money, char* name, int NAratio)
-		: Account(ID, money+ (int)money*NAratio/100, name){}
+	NormalAccount(int ID, int money, char* name, int ratio)
+		: Account(ID, money, name), NAratio(ratio) {}
+
+	int getNAratio(int money)
+	{
+		return (int)money*NAratio / 100;
+	}
+
+	void Deposit(int money)
+	{
+		Account::Deposit(money);
+		Account::Deposit((int)money*NAratio / 100);
+	}
 };
+
+
+/*
+* 클래스 이름 : HighCreditAccount
+* 클래스 설명 : 신용신뢰계좌(Account 상속)
+*/
+class HighCreditAccount :public NormalAccount {
+private:
+	int HCAGrade;
+public:
+	HighCreditAccount(int ID, int money, char* name, int ratio, int grade)
+		: NormalAccount(ID, money, name, ratio), HCAGrade(grade) {}
+
+	int HCAPlusInter(int money)
+	{
+		switch (HCAGrade)
+		{
+		case 1:
+			return (int)money*GRADE_A / 100;
+		case 2:
+			return (int)money*GRADE_B / 100;
+		case 3:
+			return (int)money*GRADE_C / 100;
+		default:
+			break;
+		}
+	}
+
+	void Deposit(int money)
+	{
+		Account::Deposit(money + NormalAccount::getNAratio(money) + HighCreditAccount::HCAPlusInter(money));
+	}
+};
+
 
 /*
 * 클래스 이름 : AccountHandler
@@ -103,8 +153,6 @@ AccountHandler::~AccountHandler() {
 	for (int i = 0; i < accCount; ++i)
 		delete Acc[i];
 }
-
-
 
 AccountHandler::AccountHandler() : accCount(0) {}
 
@@ -150,7 +198,7 @@ void AccountHandler::createAcc(void)
 		cout << "계좌번호: "; cin >> id;
 		cout << "입금액: "; cin >> balance;
 		cout << "이자율: "; cin >> ratio;
-		Acc[accCount++] = new NormalAccount(id, balance, name,ratio);
+		Acc[accCount++] = new NormalAccount(id, balance, name, ratio);
 		cout << "---계좌개설완료!" << endl;
 		cout << endl;
 		break;
@@ -160,7 +208,8 @@ void AccountHandler::createAcc(void)
 		cout << "계좌번호: "; cin >> id;
 		cout << "입금액: "; cin >> balance;
 		cout << "이자율: "; cin >> ratio;
-		cout << "신용등급: "; cin >> creditGrade;
+		cout << "신용등급(Ato1,Bto2,Cto3): "; cin >> creditGrade;
+		Acc[accCount++] = new HighCreditAccount(id, balance, name, ratio, creditGrade);
 		cout << "---계좌개설완료!" << endl;
 		cout << endl;
 		break;
@@ -256,5 +305,5 @@ int main()
 		system("cls");
 
 	}
-	//return 0;
+	return 0;
 }
